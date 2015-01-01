@@ -11,5 +11,5 @@ Package.on_use(function(api) {
   api.add_files(['src/common.coffee'], ['client', 'server']);
   api.add_files(['src/server.coffee'], 'server');
   api.export(['Files'], ['client', 'server']);
-  api.export(['FileUtils'], ['server']);
+  api.export(['Files', 'FileUtils'], 'server');
 });

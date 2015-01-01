@@ -1,8 +1,9 @@
-global = @
-
 StoreConstructors =
   FILESYSTEM: FS.Store.FileSystem
   S3: FS.Store.S3
+
+# Necessary to ensure our definition below uses the package-scope reference.
+global = @
 
 Meteor.startup ->
 

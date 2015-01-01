@@ -43,10 +43,13 @@ console.log('Using cfs adapter:', adapter)
 if adapter == 'FILESYSTEM'
   console.log('Using cfs directory:', (adapterArgs.config.path ? 'default path'))
 
+# Necessary to reference the correct reference of Files.
+global = @
+
 FileUtils =
 
   getReadStream: (fileId) ->
-    item = Files.findOne(fileId)
+    item = global.Files.findOne(fileId)
     unless item
       throw new Meteor.Error(404, 'File with ID ' + fileId + ' not found.')
     item.createReadStream('files')
