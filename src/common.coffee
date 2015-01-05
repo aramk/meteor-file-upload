@@ -52,7 +52,7 @@ Meteor.startup ->
     Files.downloadJson = (fileId) -> download('files/download/json', fileId)
 
     Files.upload = (obj) ->
-      console.debug('Uploading file', obj)
+      console.log('Uploading file', obj)
       df = Q.defer()
       Files.insert obj, (err, fileObj) ->
         if err
