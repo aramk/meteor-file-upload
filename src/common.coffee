@@ -67,3 +67,15 @@ Meteor.startup ->
             df.resolve(fileObj)
         handle = setInterval timerHandler, 1000
       df.promise
+
+    if Meteor.isClient
+
+      Files.toBlob = (fileId) ->
+        file = Files.findOne(fileId)
+        Files.download(fileId).then (data) ->
+          Blobs.fromString(data, type: file.type())
+
+      Files.downloadInBrowser = (fileId) ->
+        file = Files.findOne(fileId)
+        Files.toBlob(fileId).then (blob) ->
+          Blobs.downloadInBrowser(blob, file.name())

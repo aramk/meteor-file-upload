@@ -1,7 +1,7 @@
 Package.describe({
   name: 'aramk:file-upload',
   summary: 'Simple file uploads.',
-  version: '0.1.2'
+  version: '0.2.0'
 });
 
 Package.on_use(function(api) {
