@@ -58,6 +58,14 @@ FileUtils =
     reader = @getReadStream(fileId)
     Buffers.fromStream(reader)
 
+  writeToTempFile: (filename, data) ->
+    os = Meteor.npmRequire('os')
+    fs = Meteor.npmRequire('fs')
+    path = Meteor.npmRequire('path')
+    filePath = path.join(os.tmpdir(), filename)
+    fs.writeFileSync(filePath, data)
+    filePath
+
 Meteor.methods
 
   'files/download/string': (id) -> FileUtils.getBuffer(id).toString()
