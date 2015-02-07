@@ -27,6 +27,19 @@ Meteor.startup ->
     else
       Meteor.subscribe('files')
 
+    Files.whenUploaded = (fileId) ->
+      df = Q.defer()
+      file = Files.findOne(fileId)
+      # TODO(aramk) Remove timeout and use an event callback.
+      timerHandler = Meteor.bindEnvironment ->
+        progress = file.uploadProgress()
+        uploaded = file.isUploaded()
+        if uploaded
+          clearTimeout(handle)
+          df.resolve(file)
+      handle = setInterval timerHandler, 1000
+      df.promise
+
     # File IDs to deferred promises containing their data.
     fileCache = {}
 
@@ -58,14 +71,7 @@ Meteor.startup ->
         if err
           df.reject(err)
           return
-        # TODO(aramk) Remove timeout and use an event callback.
-        timerHandler = Meteor.bindEnvironment ->
-          progress = fileObj.uploadProgress()
-          uploaded = fileObj.isUploaded()
-          if uploaded
-            clearTimeout(handle)
-            df.resolve(fileObj)
-        handle = setInterval timerHandler, 1000
+        Files.whenUploaded(fileObj._id).then(df.resolve, df.reject)
       df.promise
 
     if Meteor.isClient

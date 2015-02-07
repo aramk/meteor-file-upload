@@ -48,13 +48,17 @@ global = @
 
 FileUtils =
 
+  whenUploaded: (fileId) -> Promises.runSync -> global.Files.whenUploaded(fileId)
+
   getReadStream: (fileId) ->
+    @whenUploaded(fileId)
     item = global.Files.findOne(fileId)
     unless item
       throw new Meteor.Error(404, 'File with ID ' + fileId + ' not found.')
     item.createReadStream('files')
 
   getBuffer: (fileId) ->
+    @whenUploaded(fileId)
     reader = @getReadStream(fileId)
     Buffers.fromStream(reader)
 
