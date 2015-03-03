@@ -30,6 +30,8 @@ Meteor.startup ->
     Files.whenUploaded = (fileId) ->
       df = Q.defer()
       file = Files.findOne(fileId)
+      unless file
+        return Q.reject('No file with ID ' + fileId + ' found.')
       # TODO(aramk) Remove timeout and use an event callback.
       timerHandler = Meteor.bindEnvironment ->
         progress = file.uploadProgress()
@@ -46,20 +48,17 @@ Meteor.startup ->
     download = (method, fileId) ->
       unless fileId?
         throw new Error('No file ID given')
-      fileDf = Q.defer()
-      cacheDf = fileCache[fileId]
-      unless cacheDf
-        cacheDf = fileCache[fileId] = Q.defer()
+      fileDf = fileCache[fileId]
+      unless fileDf
+        fileDf = fileCache[fileId] = Q.defer()
         Meteor.call method, fileId, (err, data) ->
           if err
-            cacheDf.reject(err)
+            fileDf.reject(err)
           else
-            cacheDf.resolve(data)
-      cacheDf.promise.then(
-        (data) -> fileDf.resolve(Setter.clone(data))
-        fileDf.reject
+            fileDf.resolve(data)
+      fileDf.promise.then(
+        (data) -> Setter.clone(data)
       )
-      fileDf.promise
 
     Files.download = (fileId) -> download('files/download/string', fileId)
     Files.downloadJson = (fileId) -> download('files/download/json', fileId)
