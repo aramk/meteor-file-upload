@@ -47,18 +47,38 @@ Meteor.startup ->
 
     download = (method, fileId) ->
       unless fileId?
-        throw new Error('No file ID given')
+        return Q.reject('No file ID given')
       fileDf = fileCache[fileId]
-      unless fileDf
-        fileDf = fileCache[fileId] = Q.defer()
-        Meteor.call method, fileId, (err, data) ->
-          if err
-            fileDf.reject(err)
-          else
-            fileDf.resolve(data)
-      fileDf.promise.then(
+      if fileDf
+        return fileDf.promise
+      fileDf = fileCache[fileId] = Q.defer()
+      _download(method, fileId, 10).then(
         (data) -> Setter.clone(data)
       )
+
+    _download = (method, fileId, triesLeft) ->
+      unless fileId?
+        return Q.reject('No file ID given')
+      if triesLeft <= 0
+        return Q.reject('Could not download file ' + fileId + ' - no tries left.')
+      if fileDf
+        return fileDf.promise
+      fileDf = Q.defer()
+      callback = (err, data) ->
+        unless err? || data?
+          # TODO(aramk) For some reason, the callback can be invoked even though the meteor method
+          # was never called. If this is the case, re-run the download method until we get some
+          # actual data back.
+          _.delay(
+            -> _download(method, fileId, triesLeft - 1).then(fileDf.resolve, fileDf.reject)
+            1000
+          )
+        else if err
+          fileDf.reject(err)
+        else
+          fileDf.resolve(data)
+      Meteor.call(method, fileId, callback)
+      fileDf.promise
 
     Files.download = (fileId) -> download('files/download/string', fileId)
     Files.downloadJson = (fileId) -> download('files/download/json', fileId)
