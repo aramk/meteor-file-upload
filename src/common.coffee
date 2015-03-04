@@ -49,10 +49,10 @@ Meteor.startup ->
       unless fileId?
         return Q.reject('No file ID given')
       fileDf = fileCache[fileId]
-      if fileDf
-        return fileDf.promise
-      fileDf = fileCache[fileId] = Q.defer()
-      _download(method, fileId, 10).then(
+      unless fileDf
+        fileDf = fileCache[fileId] = Q.defer()
+        _download(method, fileId, 10).then(fileDf.resolve, fileDf.reject)
+      fileDf.promise.then(
         (data) -> Setter.clone(data)
       )
 
