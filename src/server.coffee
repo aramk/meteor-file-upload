@@ -1,11 +1,12 @@
 env = process.env
 
+TEMP_DIR = env.TEMP_DIR
+
 # Removes the temporary directory on startup.
 REMOVE_TMP_ON_LOAD = env.REMOVE_TMP_ON_LOAD
 if REMOVE_TMP_ON_LOAD == '1' || REMOVE_TMP_ON_LOAD == 'true'
   console.log('Removing TEMP_DIR...')
-  TEMP_DIR = env.TEMP_DIR
-  if TEMP_DIR
+  if TEMP_DIR?
     console.log('TEMP_DIR=', TEMP_DIR)
     shell = Meteor.npmRequire('shelljs')
     path = Meteor.npmRequire('path')
@@ -19,10 +20,20 @@ Adapters =
   FILESYSTEM:
     config: {}
 
+if TEMP_DIR?
+  Adapters._tempstore =
+    provider: 'FILESYSTEM'
+    config:
+      internal: true
+      path: TEMP_DIR
+
 # Filesystem adapter
 FILES_DIR = env.FILES_DIR
 if FILES_DIR?
-  Adapters.FILESYSTEM.config.path = FILES_DIR + '/cfs'
+  if FILES_DIR == '0'
+    delete Adapters.FILESYSTEM
+  else
+    Adapters.FILESYSTEM.config.path = FILES_DIR + '/cfs'
 
 # S3 adapter
 s3BucketName = env.S3_BUCKET_NAME
@@ -36,7 +47,7 @@ if s3BucketName
 # Necessary to reference the correct reference of Files.
 global = @
 
-FileUtils =
+_.extend FileUtils,
 
   whenUploaded: (fileId) -> Promises.runSync -> global.Files.whenUploaded(fileId)
 

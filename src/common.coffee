@@ -5,6 +5,10 @@ StoreConstructors =
 # Necessary to ensure our definition below uses the package-scope reference.
 global = @
 
+moduleDf = Q.defer()
+FileUtils =
+  ready: -> moduleDf.promise
+
 Meteor.startup ->
 
   getAdapters = ->
@@ -13,15 +17,28 @@ Meteor.startup ->
     else
       Promises.serverMethodCall('files/adapters')
 
-  promise = getAdapters()
-  promise.fail (err) ->
+  adapterPromise = getAdapters()
+  adapterPromise.fail (err) ->
     Logger.error('Could not set up CFS adapters', err)
 
-  promise.then Meteor.bindEnvironment (result) ->
+  adapterPromise.then Meteor.bindEnvironment (result) ->
+
+    if Meteor.isServer
+      Logger.info('CFS Adapters', result)
+
     stores = []
+    createStore = (providerId, storeId, config) ->
+      StoreClass = StoreConstructors[providerId]
+      new StoreClass(providerId, config)
+    
+    _tempstore = result._tempstore
+    if _tempstore
+      delete result._tempstore
+      if Meteor.isServer
+        FS.TempStore.Storage = createStore(_tempstore.provider, '_tempstore', _tempstore.config)
+
     _.each result, (args, id) ->
-      StoreClass = StoreConstructors[id]
-      stores.push new StoreClass(id, args.config)
+      stores.push createStore(id, id, args.config)
     Files = global.Files = new FS.Collection 'files', stores: stores
     Files.allow
       download: Collections.allow
@@ -58,26 +75,23 @@ Meteor.startup ->
       fileDf = fileCache[fileId]
       unless fileDf
         fileDf = fileCache[fileId] = Q.defer()
-        _download(method, fileId, 10).then(fileDf.resolve, fileDf.reject)
+        _download(method, fileId, 10)
       fileDf.promise.then(
         (data) -> Setter.clone(data)
       )
 
     _download = (method, fileId, triesLeft) ->
-      unless fileId?
-        return Q.reject('No file ID given')
+      fileDf = fileCache[fileId]
       if triesLeft <= 0
-        return Q.reject('Could not download file ' + fileId + ' - no tries left.')
-      if fileDf
-        return fileDf.promise
-      fileDf = Q.defer()
+        fileDf.reject('Could not download file ' + fileId + ' - no tries left.')
+        return
       callback = (err, data) ->
         unless err? || data?
           # TODO(aramk) For some reason, the callback can be invoked even though the meteor method
           # was never called. If this is the case, re-run the download method until we get some
           # actual data back.
           _.delay(
-            -> _download(method, fileId, triesLeft - 1).then(fileDf.resolve, fileDf.reject)
+            -> _download(method, fileId, triesLeft - 1)
             1000
           )
         else if err
@@ -85,7 +99,6 @@ Meteor.startup ->
         else
           fileDf.resolve(data)
       Meteor.call(method, fileId, callback)
-      fileDf.promise
 
     Files.download = (fileId) -> download('files/download/string', fileId)
     Files.downloadJson = (fileId) -> download('files/download/json', fileId)
@@ -111,3 +124,5 @@ Meteor.startup ->
         file = Files.findOne(fileId)
         Files.toBlob(fileId).then (blob) ->
           Blobs.downloadInBrowser(blob, file.name())
+
+    moduleDf.resolve(Files)

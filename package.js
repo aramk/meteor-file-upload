@@ -13,6 +13,7 @@ Package.on_use(function(api) {
     'aramk:utility@0.6.0',
     'cfs:standard-packages@0.5.6',
     'cfs:filesystem@0.1.2',
+    'cfs:tempstore@0.1.4',
     'cfs:s3@0.1.3'
   ], ['client', 'server']);
   api.addFiles([
@@ -25,5 +26,7 @@ Package.on_use(function(api) {
   // a global variable set to undefiend.
   // api.export(['Files'], ['client', 'server']);
   api.imply('cfs:standard-packages@0.5.6');
-  api.export(['FileUtils'], 'server');
+  api.export([
+    'FileUtils'
+  ], ['client', 'server']);
 });
