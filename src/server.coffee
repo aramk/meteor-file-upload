@@ -14,11 +14,9 @@ if REMOVE_TMP_ON_LOAD == '1' || REMOVE_TMP_ON_LOAD == 'true'
   else
     console.log('No TEMP_DIR set')
 
-adapter = 'FILESYSTEM'
+# Default to filesystem for storage.
 Adapters =
   FILESYSTEM:
-    config: {}
-  S3:
     config: {}
 
 # Filesystem adapter
@@ -29,19 +27,11 @@ if FILES_DIR?
 # S3 adapter
 s3BucketName = env.S3_BUCKET_NAME
 if s3BucketName
-  adapter = 'S3'
-  Adapters.S3.config.bucket = s3BucketName
   s3Region = env.S3_REGION
+  Adapters.S3 =
+    config:
+      bucket: s3BucketName
   Adapters.S3.config.region = s3Region if s3Region
-
-cfsAdapter = env.CFS_ADAPTER
-if cfsAdapter
-  adapter = cfsAdapter
-
-adapterArgs = Adapters[adapter]
-console.log('Using cfs adapter:', adapter)
-if adapter == 'FILESYSTEM'
-  console.log('Using cfs directory:', (adapterArgs.config.path ? 'default path'))
 
 # Necessary to reference the correct reference of Files.
 global = @
@@ -70,6 +60,8 @@ FileUtils =
     fs.writeFileSync(filePath, data)
     filePath
 
+  getAdapters: -> Setter.clone(Adapters)
+
 Meteor.methods
 
   'files/download/string': (id) -> FileUtils.getBuffer(id).toString()
@@ -79,5 +71,9 @@ Meteor.methods
       throw new Meteor.Error(400, 'Attempted to download empty JSON')
     else
       JSON.parse(data)
-  'files/adapter': ->
-    {adapter: adapter, args: Adapters[adapter]}
+  'files/adapters': ->
+    # Only return the name of the adapters to prevent access to confidential settings on the client.
+    adapters = {}
+    _.each Adapters, (args, id) ->
+      adapters[id] = {}
+    adapters

@@ -7,15 +7,22 @@ global = @
 
 Meteor.startup ->
 
-  Meteor.call 'files/adapter', (err, result) ->
+  getAdapters = ->
+    if Meteor.isServer
+      Q.when(FileUtils.getAdapters())
+    else
+      Promises.serverMethodCall('files/adapters')
 
-    console.log('File adapter:', result)
-    adapterArgs = result.args
-    adapter = result.adapter
-    StoreClass = StoreConstructors[adapter]
-    Files = global.Files = new FS.Collection 'files', stores: [
-      new StoreClass('files', adapterArgs.config)
-    ]
+  promise = getAdapters()
+  promise.fail (err) ->
+    Logger.error('Could not set up CFS adapters', err)
+
+  promise.then Meteor.bindEnvironment (result) ->
+    stores = []
+    _.each result, (args, id) ->
+      StoreClass = StoreConstructors[id]
+      stores.push new StoreClass(id, args.config)
+    Files = global.Files = new FS.Collection 'files', stores: stores
     Files.allow
       download: Collections.allow
       insert: Collections.allow
