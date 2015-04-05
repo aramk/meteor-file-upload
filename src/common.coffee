@@ -29,7 +29,7 @@ Meteor.startup ->
     stores = []
     createStore = (providerId, storeId, config) ->
       StoreClass = StoreConstructors[providerId]
-      new StoreClass(providerId, config)
+      new StoreClass(storeId, config)
     
     _tempstore = result._tempstore
     if _tempstore
