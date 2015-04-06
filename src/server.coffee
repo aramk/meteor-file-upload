@@ -47,20 +47,25 @@ if s3BucketName
 # Necessary to reference the correct reference of Files.
 global = @
 
+getCollection = (collectionName) ->
+  collectionName ?= 'Files'
+  global[collectionName]
+
 _.extend FileUtils,
 
-  whenUploaded: (fileId) -> Promises.runSync -> global.Files.whenUploaded(fileId)
+  whenUploaded: (fileId, collectionName) ->
+    Promises.runSync -> getCollection(collectionName).whenUploaded(fileId)
 
-  getReadStream: (fileId) ->
-    @whenUploaded(fileId)
-    item = global.Files.findOne(fileId)
+  getReadStream: (fileId, collectionName) ->
+    @whenUploaded(fileId, collectionName)
+    item = getCollection(collectionName).findOne(fileId)
     unless item
       throw new Meteor.Error(404, 'File with ID ' + fileId + ' not found.')
     item.createReadStream('files')
 
-  getBuffer: (fileId) ->
-    @whenUploaded(fileId)
-    reader = @getReadStream(fileId)
+  getBuffer: (fileId, collectionName) ->
+    @whenUploaded(fileId, collectionName)
+    reader = @getReadStream(fileId, collectionName)
     Buffers.fromStream(reader)
 
   writeToTempFile: (filename, data) ->
@@ -75,9 +80,10 @@ _.extend FileUtils,
 
 Meteor.methods
 
-  'files/download/string': (id) -> FileUtils.getBuffer(id).toString()
-  'files/download/json': (id) ->
-    data = FileUtils.getBuffer(id).toString()
+  'files/download/string': (fileId, collectionName) ->
+    FileUtils.getBuffer(fileId, collectionName).toString()
+  'files/download/json': (fileId, collectionName) ->
+    data = FileUtils.getBuffer(fileId, collectionName).toString()
     if data == ''
       throw new Meteor.Error(400, 'Attempted to download empty JSON')
     else
