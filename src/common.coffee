@@ -21,8 +21,6 @@ FileUtils =
       Logger.error('Could not set up CFS adapters', err)
 
     adapterPromise.then Meteor.bindEnvironment (result) =>
-      if Meteor.isServer
-        Logger.info('CFS Adapters', result)
 
       tempStoreArgs = result._tempstore
       if tempStoreArgs
@@ -31,8 +29,8 @@ FileUtils =
           createTempStore(tempStoreArgs)
 
       stores = []
-      _.each result, (args, id) ->
-        stores.push createStore(id, id, args.config)
+      _.each result, (args, adapterId) ->
+        stores.push createStore(adapterId, id + '-' + adapterId, args.config)
       
       args = _.extend({
         stores: stores
@@ -110,7 +108,7 @@ bindMethods = (collectionName, collection) ->
 
 if Meteor.isServer
   createTempStore = _.once (args) ->
-    FS.TempStore.Storage = createStore(args.provider, '_tempstore', args.config)
+    FS.TempStore.Storage = createStore(args.adapter, '_tempstore', args.config)
 
 Meteor.startup ->
   FileUtils.createCollection('files').then (Files) -> moduleDf.resolve(Files)
@@ -119,9 +117,11 @@ Meteor.startup ->
 # AUXILIARY
 ####################################################################################################
 
-createStore = (providerId, storeId, config) ->
-  StoreClass = StoreConstructors[providerId]
-  new StoreClass(storeId, config)
+createStore = (adapterId, storeId, config) ->
+  StoreClass = StoreConstructors[adapterId]
+  store = new StoreClass(storeId, config)
+  Logger.info('Created CFS store', adapterId, storeId)
+  store
 
 download = (method, fileId) ->
   unless fileId?

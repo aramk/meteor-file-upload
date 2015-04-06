@@ -22,7 +22,7 @@ Adapters =
 
 if TEMP_DIR?
   Adapters._tempstore =
-    provider: 'FILESYSTEM'
+    adapter: 'FILESYSTEM'
     config:
       internal: true
       path: TEMP_DIR
