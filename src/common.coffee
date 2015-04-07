@@ -85,7 +85,7 @@ bindMethods = (collectionName, collection) ->
     upload: (obj) ->
       console.log('Uploading file', obj)
       df = Q.defer()
-      collection.insert obj, (err, fileObj) ->
+      collection.insert obj, Meteor.bindEnvironment (err, fileObj) ->
         if err
           df.reject(err)
           return
@@ -97,14 +97,14 @@ bindMethods = (collectionName, collection) ->
     _.extend collection,
 
       toBlob: (fileId) ->
+        # NOTE: Only works with string data. Use downloadInBrowser() to download any type of file.
         file = collection.findOne(fileId)
         collection.download(fileId).then (data) ->
           Blobs.fromString(data, type: file.type())
 
       downloadInBrowser: (fileId) ->
         file = collection.findOne(fileId)
-        collection.toBlob(fileId).then (blob) ->
-          Blobs.downloadInBrowser(blob, file.name())
+        Window.downloadFile(file.url())
 
 if Meteor.isServer
   createTempStore = _.once (args) ->
