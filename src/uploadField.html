@@ -1,0 +1,13 @@
+<template name="uploadField">
+  <div class="form-group upload-field" data-name="{{name}}">
+    {{> loader text="Uploading"}}
+    <input placeholder="Upload..." type="file">
+    <div class="filename"></div>
+    <button type="button" class="ui remove button" style="display: none">Remove</button>
+
+    <!-- Use hidden input fields and set values so they are saved on submit. -->
+    <div class="value" style="display: none">
+      {{> afQuickField name=name}}
+    </div>
+  </div>
+</template>

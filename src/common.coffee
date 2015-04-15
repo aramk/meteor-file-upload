@@ -83,7 +83,7 @@ bindMethods = (collectionName, collection) ->
     downloadJson: (fileId) -> download('files/download/json', fileId, collectionName)
 
     upload: (obj) ->
-      console.log('Uploading file', obj)
+      Logger.info('Uploading file', obj)
       df = Q.defer()
       collection.insert obj, Meteor.bindEnvironment (err, fileObj) ->
         if err
