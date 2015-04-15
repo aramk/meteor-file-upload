@@ -34,7 +34,9 @@ TemplateClass.events
       (err) -> alert('File upload faied: ' + err)
     )
 
-getCollection = (template) -> getTemplate(template).data?.collection ? Files
+getCollection = (template) ->
+  name = getTemplate(template).data?.collection ? 'Files'
+  Collections.get(name)
 
 updateState = (template) ->
   $valueInput = getValueInput(template)

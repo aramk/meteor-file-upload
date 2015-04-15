@@ -47,9 +47,9 @@ if s3BucketName
 # Necessary to reference the correct reference of Files.
 global = @
 
-getCollection = (collectionName) ->
-  collectionName ?= 'Files'
-  global[collectionName]
+getCollection = (name) ->
+  name ?= 'Files'
+  Collections.get(name)
 
 _.extend FileUtils,
 
