@@ -36,6 +36,7 @@ FileUtils =
         stores: stores
         globalName: Strings.toTitleCase(id)
       }, args)
+      globalName = args.globalName
       collection = new FS.Collection(id, args)
       collection.name = id
       collection.allow
@@ -49,8 +50,8 @@ FileUtils =
       else
         Meteor.subscribe(id)
 
-      bindMethods(args.globalName, collection)
-      global[args.globalName] = collection
+      bindMethods(globalName, collection)
+      global[globalName] = collection
       df.resolve(collection)
     df.promise
 
@@ -123,18 +124,18 @@ createStore = (adapterId, storeId, config) ->
   Logger.info('Created CFS store', adapterId, storeId)
   store
 
-download = (method, fileId) ->
+download = (method, fileId, collectionName) ->
   unless fileId?
     return Q.reject('No file ID given')
   fileDf = fileCache[fileId]
   unless fileDf
     fileDf = fileCache[fileId] = Q.defer()
-    _download(method, fileId, 10)
+    _download(method, fileId, collectionName, 10)
   fileDf.promise.then(
     (data) -> Setter.clone(data)
   )
 
-_download = (method, fileId, triesLeft) ->
+_download = (method, fileId, collectionName, triesLeft) ->
   fileDf = fileCache[fileId]
   if triesLeft <= 0
     fileDf.reject('Could not download file ' + fileId + ' - no tries left.')
@@ -145,11 +146,11 @@ _download = (method, fileId, triesLeft) ->
       # was never called. If this is the case, re-run the download method until we get some
       # actual data back.
       _.delay(
-        -> _download(method, fileId, triesLeft - 1)
+        -> _download(method, fileId, collectionName, triesLeft - 1)
         1000
       )
     else if err
       fileDf.reject(err)
     else
       fileDf.resolve(data)
-  Meteor.call(method, fileId, callback)
+  Meteor.call(method, fileId, collectionName, callback)
