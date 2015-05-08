@@ -49,7 +49,8 @@ global = @
 
 getCollection = (name) ->
   name ?= 'Files'
-  Collections.get(name)
+  collection = Collections.get(name)
+  unless collection throw new Error('Cannot find collection with name ' + name)
 
 _.extend FileUtils,
 
