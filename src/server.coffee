@@ -50,7 +50,8 @@ global = @
 getCollection = (name) ->
   name ?= 'Files'
   collection = Collections.get(name)
-  unless collection throw new Error('Cannot find collection with name ' + name)
+  unless collection then throw new Error('Cannot find collection with name ' + name)
+  collection
 
 _.extend FileUtils,
 
