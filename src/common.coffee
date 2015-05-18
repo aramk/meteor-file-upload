@@ -103,9 +103,16 @@ bindMethods = (collectionName, collection) ->
         collection.download(fileId).then (data) ->
           Blobs.fromString(data, type: file.type())
 
-      downloadInBrowser: (fileId) ->
+      downloadInBrowser: (fileId, args) ->
+        args = Setter.merge({
+          blob: false
+        }, args)
         file = collection.findOne(fileId)
-        Window.downloadFile(file.url())
+        if args.blob
+          blob = @toBlob(fileId)
+          Blobs.downloadInBrowser(blob, file.name())
+        else
+          Window.downloadFile(file.url())
 
 if Meteor.isServer
   createTempStore = _.once (args) ->
