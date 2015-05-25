@@ -134,16 +134,17 @@ createStore = (adapterId, storeId, config) ->
 download = (method, fileId, collectionName) ->
   unless fileId?
     return Q.reject('No file ID given')
-  fileDf = fileCache[fileId]?[method]
+  fileDf = fileCache[method]?[fileId]
   unless fileDf
-    fileDf = fileCache[fileId][method] = Q.defer()
+    fileIdCache = fileCache[method] ?= {}
+    fileDf = fileIdCache[fileId] = Q.defer()
     _download(method, fileId, collectionName, 10)
   fileDf.promise.then(
     (data) -> Setter.clone(data)
   )
 
 _download = (method, fileId, collectionName, triesLeft) ->
-  fileDf = fileCache[fileId][method]
+  fileDf = fileCache[method][fileId]
   if triesLeft <= 0
     fileDf.reject('Could not download file ' + fileId + ' - no tries left.')
     return
