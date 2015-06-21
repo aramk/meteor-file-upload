@@ -5,17 +5,23 @@ StoreConstructors =
 # Necessary to ensure our definition below uses the package-scope reference.
 global = @
 
-moduleDf = Q.defer()
+# A map of collection IDs to promises which are resolved once they are set up.
+collectionPromises = {}
 
 # File IDs to deferred promises containing their data.
 fileCache = {}
 
+FILE_COLLECTION_ID = 'files'
+
 FileUtils =
 
-  ready: -> moduleDf.promise
+  ready: (name) ->
+    name ?= FILE_COLLECTION_ID
+    Q(collectionPromises[name])
 
   createCollection: (id, args) ->
     df = Q.defer()
+    collectionPromises[id] = df.promise
     adapterPromise = Q.when(@getAdapters())
     adapterPromise.fail (err) ->
       Logger.error('Could not set up CFS adapters', err)
@@ -44,14 +50,14 @@ FileUtils =
         insert: Collections.allow
         update: Collections.allow
         remove: Collections.allow
+      bindMethods(globalName, collection)
+      global[globalName] = collection
 
       if Meteor.isServer
-        Meteor.publish id, -> if @userId then collection.find() else null
+        Meteor.publish id, -> if @userId then collection.find() else []
       else
         Meteor.subscribe(id)
 
-      bindMethods(globalName, collection)
-      global[globalName] = collection
       df.resolve(collection)
     df.promise
 
@@ -112,7 +118,7 @@ if Meteor.isServer
     FS.TempStore.Storage = createStore(args.adapter, '_tempstore', args.config)
 
 Meteor.startup ->
-  FileUtils.createCollection('files').then (Files) -> moduleDf.resolve(Files)
+  FileUtils.createCollection(FILE_COLLECTION_ID)
 
 ####################################################################################################
 # AUXILIARY
