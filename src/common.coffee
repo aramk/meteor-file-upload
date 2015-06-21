@@ -109,9 +109,16 @@ bindMethods = (collectionName, collection) ->
         collection.download(fileId).then (data) ->
           Blobs.fromString(data, type: file.type())
 
-      downloadInBrowser: (fileId) ->
+      downloadInBrowser: (fileId, args) ->
+        args = Setter.merge({
+          blob: false
+        }, args)
         file = collection.findOne(fileId)
-        Window.downloadFile(file.url())
+        if args.blob
+          blob = @toBlob(fileId)
+          Blobs.downloadInBrowser(blob, file.name())
+        else
+          Window.downloadFile(file.url())
 
 if Meteor.isServer
   createTempStore = _.once (args) ->
@@ -133,16 +140,17 @@ createStore = (adapterId, storeId, config) ->
 download = (method, fileId, collectionName) ->
   unless fileId?
     return Q.reject('No file ID given')
-  fileDf = fileCache[fileId]
+  fileDf = fileCache[method]?[fileId]
   unless fileDf
-    fileDf = fileCache[fileId] = Q.defer()
+    fileIdCache = fileCache[method] ?= {}
+    fileDf = fileIdCache[fileId] = Q.defer()
     _download(method, fileId, collectionName, 10)
   fileDf.promise.then(
     (data) -> Setter.clone(data)
   )
 
 _download = (method, fileId, collectionName, triesLeft) ->
-  fileDf = fileCache[fileId]
+  fileDf = fileCache[method][fileId]
   if triesLeft <= 0
     fileDf.reject('Could not download file ' + fileId + ' - no tries left.')
     return
