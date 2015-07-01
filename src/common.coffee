@@ -22,12 +22,15 @@ FileUtils =
   createCollection: (id, args) ->
     df = Q.defer()
     collectionPromises[id] = df.promise
+    # Wait for startup to complete to ensure collections can be defined.
+    Meteor.startup => df.resolve @_createCollection(id, args)
+    df.promise
+
+  _createCollection: (id, args) ->
+    df = Q.defer()
     adapterPromise = Q.when(@getAdapters())
-    adapterPromise.fail (err) ->
-      Logger.error('Could not set up CFS adapters', err)
-
+    adapterPromise.fail (err) -> Logger.error('Could not set up CFS adapters', err)
     adapterPromise.then Meteor.bindEnvironment (result) =>
-
       tempStoreArgs = result._tempstore
       if tempStoreArgs
         delete result._tempstore
@@ -53,10 +56,11 @@ FileUtils =
       bindMethods(globalName, collection)
       global[globalName] = collection
 
-      if Meteor.isServer
-        Meteor.publish id, -> if @userId then collection.find() else []
-      else
-        Meteor.subscribe(id)
+      unless args.noPublish == true
+        if Meteor.isServer
+          Meteor.publish id, -> if @userId then collection.find() else []
+        else
+          Meteor.subscribe(id)
 
       df.resolve(collection)
     df.promise
