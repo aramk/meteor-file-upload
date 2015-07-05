@@ -45,7 +45,7 @@ updateState = (template) ->
   $filename =  getFilename(template)
 
   value = $valueInput.val()
-  fileObj = if value then getCollection(template).findOne(value)
+  fileObj = if value then getCollection(template).findOne(_id: value)
   filename = fileObj?.name()
   $fileInput[if !value then 'show' else 'hide'](0)
   $removeButton[if value then 'show' else 'hide'](0)
