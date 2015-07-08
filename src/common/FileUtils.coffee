@@ -93,15 +93,33 @@ bindMethods = (collectionName, collection) ->
 
     downloadJson: (fileId) -> download('files/download/json', fileId, collectionName)
 
-    upload: (obj) ->
-      Logger.info('Uploading file', obj)
+    upload: (obj, options) ->
+      Logger.info('Uploading file', obj, options)
       df = Q.defer()
-      collection.insert obj, Meteor.bindEnvironment (err, fileObj) ->
-        if err
-          df.reject(err)
-          return
-        collection.whenUploaded(fileObj._id).then(df.resolve, df.reject)
+      onFileObj = (fileObj) -> df.resolve collection.whenUploaded(fileObj._id)
+      unless options?.useExisting == false
+        Logger.debug('Checking for existing file copy...')
+        stats = @getFileStats(obj)
+        name = stats.name
+        size = stats.size
+        if name? && size?
+          fileObj = collection.findOne({'original.name': name, 'original.size': size})
+      if fileObj
+        Logger.info('Reusing existing file', fileObj._id)
+        onFileObj(fileObj)
+      else
+        collection.insert obj, Meteor.bindEnvironment (err, fileObj) ->
+          if err then df.reject(err) else onFileObj(fileObj)
       df.promise
+
+    getFileStats: (obj) ->
+      if obj instanceof FS.File
+        name = obj.name()
+        size = obj.size()
+      else if Meteor.isClient && obj instanceof File
+        name = obj.name
+        size = obj.size ? obj.fileSize
+      {name: name, size: size}
 
   if Meteor.isClient
 

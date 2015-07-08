@@ -83,8 +83,10 @@ _.extend FileUtils,
 Meteor.methods
 
   'files/download/string': (fileId, collectionName) ->
+    return unless @userId
     FileUtils.getBuffer(fileId, collectionName).toString()
   'files/download/json': (fileId, collectionName) ->
+    return unless @userId
     data = FileUtils.getBuffer(fileId, collectionName).toString()
     if data == ''
       throw new Meteor.Error(400, 'Attempted to download empty JSON')
@@ -96,3 +98,6 @@ Meteor.methods
     _.each Adapters, (args, id) ->
       adapters[id] = {}
     adapters
+  'files/query': (args) ->
+    return unless @userId
+    getCollection(args.collection).find(args.selector).map (file) -> file._id

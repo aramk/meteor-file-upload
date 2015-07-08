@@ -24,10 +24,10 @@ Package.on_use(function(api) {
     'src/uploadField.less'
   ], 'client');
   api.addFiles([
-    'src/common.coffee'
+    'src/common/FileUtils.coffee'
   ], ['client', 'server']);
   api.addFiles([
-    'src/server.coffee'
+    'src/server/FileUtils.coffee'
   ], 'server');
   api.imply('cfs:standard-packages@0.5.7');
   api.export([
