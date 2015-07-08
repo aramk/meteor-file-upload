@@ -125,7 +125,7 @@ bindMethods = (collectionName, collection) ->
         selector = {'original.name': name, 'original.size': size}
       else if url?
         selector = {'original.url': url}
-      if selector then collection.findOne()
+      if selector then collection.findOne(selector)
 
     getFileStats: (file) ->
       if Paths.isUrl(file)
