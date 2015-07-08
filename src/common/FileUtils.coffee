@@ -93,33 +93,51 @@ bindMethods = (collectionName, collection) ->
 
     downloadJson: (fileId) -> download('files/download/json', fileId, collectionName)
 
-    upload: (obj, options) ->
-      Logger.info('Uploading file', obj, options)
+    # Uploads the given file to the collection.
+    #  * `file` - Either an `FS.File`, `File`, or URL string.
+    #  * `options.useExisting` - Whether to attempt to use an existing copy of the given file
+    #                            instead of uploading a new copy. Defaults to true.
+    # Returns a promise containing uploaded or existing `FS.File` instance.
+    upload: (file, options) ->
+      Logger.info('Uploading file', file, options)
       df = Q.defer()
-      onFileObj = (fileObj) -> df.resolve collection.whenUploaded(fileObj._id)
+      onFileId = (fileId) -> df.resolve collection.whenUploaded(fileId)
       unless options?.useExisting == false
         Logger.debug('Checking for existing file copy...')
-        stats = @getFileStats(obj)
-        name = stats.name
-        size = stats.size
-        if name? && size?
-          fileObj = collection.findOne({'original.name': name, 'original.size': size})
+        fileObj = @getExistingCopy(file)
       if fileObj
         Logger.info('Reusing existing file', fileObj._id)
-        onFileObj(fileObj)
+        onFileId(fileObj._id)
       else
-        collection.insert obj, Meteor.bindEnvironment (err, fileObj) ->
-          if err then df.reject(err) else onFileObj(fileObj)
+        if Paths.isUrl(file)
+          Meteor.call 'files/upload/url', file, {collection: collectionName}, (err, fileId) ->
+            if err then df.reject(err) else onFileId(fileId)
+        else
+          collection.insert file, Meteor.bindEnvironment (err, fileObj) ->
+            if err then df.reject(err) else onFileId(fileObj._id)
       df.promise
 
-    getFileStats: (obj) ->
-      if obj instanceof FS.File
-        name = obj.name()
-        size = obj.size()
-      else if Meteor.isClient && obj instanceof File
-        name = obj.name
-        size = obj.size ? obj.fileSize
-      {name: name, size: size}
+    getExistingCopy: (file) ->
+      stats = @getFileStats(file)
+      name = stats.name
+      size = stats.size
+      if name? && size?
+        selector = {'original.name': name, 'original.size': size}
+      else if url?
+        selector = {'original.url': url}
+      if selector then collection.findOne()
+
+    getFileStats: (file) ->
+      if Paths.isUrl(file)
+        name = Paths.filename(file)
+        url = file
+      if file instanceof FS.File
+        name = file.name()
+        size = file.size()
+      else if Meteor.isClient && file instanceof File
+        name = file.name
+        size = file.size ? file.fileSize
+      {name: name, size: size, url: url}
 
   if Meteor.isClient
 

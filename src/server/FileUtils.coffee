@@ -1,3 +1,7 @@
+os = Npm.require('os')
+fs = Npm.require('fs')
+path = Npm.require('path')
+mime = Npm.require('mime')
 env = process.env
 
 TEMP_DIR = env.TEMP_DIR
@@ -8,8 +12,8 @@ if REMOVE_TMP_ON_LOAD == '1' || REMOVE_TMP_ON_LOAD == 'true'
   console.log('Removing TEMP_DIR...')
   if TEMP_DIR?
     console.log('TEMP_DIR=', TEMP_DIR)
-    shell = Meteor.npmRequire('shelljs')
-    path = Meteor.npmRequire('path')
+    shell = Npm.require('shelljs')
+    path = Npm.require('path')
     shell.rm('-rf', path.join(TEMP_DIR, '*'))
     console.log('Removed TEMP_DIR')
   else
@@ -71,9 +75,6 @@ _.extend FileUtils,
     Buffers.fromStream(reader)
 
   writeToTempFile: (filename, data) ->
-    os = Meteor.npmRequire('os')
-    fs = Meteor.npmRequire('fs')
-    path = Meteor.npmRequire('path')
     filePath = path.join(os.tmpdir(), filename)
     fs.writeFileSync(filePath, data)
     filePath
@@ -85,6 +86,7 @@ Meteor.methods
   'files/download/string': (fileId, collectionName) ->
     return unless @userId
     FileUtils.getBuffer(fileId, collectionName).toString()
+
   'files/download/json': (fileId, collectionName) ->
     return unless @userId
     data = FileUtils.getBuffer(fileId, collectionName).toString()
@@ -92,12 +94,26 @@ Meteor.methods
       throw new Meteor.Error(400, 'Attempted to download empty JSON')
     else
       JSON.parse(data)
+
   'files/adapters': ->
     # Only return the name of the adapters to prevent access to confidential settings on the client.
     adapters = {}
     _.each Adapters, (args, id) ->
       adapters[id] = {}
     adapters
+
   'files/query': (args) ->
     return unless @userId
     getCollection(args.collection).find(args.selector).map (file) -> file._id
+
+  'files/upload/url': (url, args) ->
+    return unless @userId
+    @unblock()
+    collection = getCollection(args.collection)
+    buffer = Request.buffer(method: 'GET', uri: url)
+    file = new FS.File()
+    fileName = Paths.basename(url)
+    type = mime.lookup(fileName)
+    file.attachData(buffer, {type: type})
+    fileObj = collection.insert(file)
+    fileObj._id
