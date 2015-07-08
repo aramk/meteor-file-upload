@@ -108,7 +108,7 @@ bindMethods = (collectionName, collection) ->
         Logger.debug('Reusing existing file', fileObj._id)
         onFileId(fileObj._id)
       else
-        Logger.info('Uploading file', file, options)
+        Logger.debug('Uploading file', file, options)
         if Paths.isUrl(file)
           Meteor.call 'files/upload/url', file, {collection: collectionName}, (err, fileId) ->
             if err then df.reject(err) else onFileId(fileId)
