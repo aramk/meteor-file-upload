@@ -76,7 +76,7 @@ bindMethods = (collectionName, collection) ->
 
     whenUploaded: (fileId) ->
       df = Q.defer()
-      file = collection.findOne(fileId)
+      file = collection.findOne(_id: fileId)
       unless file
         return Q.reject('No file with ID ' + fileId + ' found.')
       # TODO(aramk) Remove timeout and use an event callback.
@@ -127,7 +127,7 @@ bindMethods = (collectionName, collection) ->
 
       toBlob: (fileId) ->
         # NOTE: Only works with string data. Use downloadInBrowser() to download any type of file.
-        file = collection.findOne(fileId)
+        file = collection.findOne(_id: fileId)
         collection.download(fileId).then (data) ->
           Blobs.fromString(data, type: file.type())
 
@@ -135,7 +135,7 @@ bindMethods = (collectionName, collection) ->
         args = Setter.merge({
           blob: false
         }, args)
-        file = collection.findOne(fileId)
+        file = collection.findOne(_id: fileId)
         if args.blob
           blob = @toBlob(fileId)
           Blobs.downloadInBrowser(blob, file.name())

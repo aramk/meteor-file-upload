@@ -60,7 +60,7 @@ _.extend FileUtils,
 
   getReadStream: (fileId, collectionName) ->
     @whenUploaded(fileId, collectionName)
-    item = getCollection(collectionName).findOne(fileId)
+    item = getCollection(collectionName).findOne(_id: fileId)
     unless item
       throw new Meteor.Error(404, 'File with ID ' + fileId + ' not found.')
     item.createReadStream('files')
