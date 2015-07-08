@@ -99,16 +99,16 @@ bindMethods = (collectionName, collection) ->
     #                            instead of uploading a new copy. Defaults to true.
     # Returns a promise containing uploaded or existing `FS.File` instance.
     upload: (file, options) ->
-      Logger.info('Uploading file', file, options)
       df = Q.defer()
       onFileId = (fileId) -> df.resolve collection.whenUploaded(fileId)
       unless options?.useExisting == false
         Logger.debug('Checking for existing file copy...')
         fileObj = @getExistingCopy(file)
       if fileObj
-        Logger.info('Reusing existing file', fileObj._id)
+        Logger.debug('Reusing existing file', fileObj._id)
         onFileId(fileObj._id)
       else
+        Logger.info('Uploading file', file, options)
         if Paths.isUrl(file)
           Meteor.call 'files/upload/url', file, {collection: collectionName}, (err, fileId) ->
             if err then df.reject(err) else onFileId(fileId)
