@@ -44,6 +44,7 @@ FileUtils =
       args = _.extend({
         stores: stores
         globalName: Strings.toTitleCase(id)
+        publish: true
       }, args)
       globalName = args.globalName
       collection = new FS.Collection(id, args)
@@ -56,7 +57,7 @@ FileUtils =
       bindMethods(globalName, collection)
       global[globalName] = collection
 
-      unless args.noPublish == true
+      if args.publish
         if Meteor.isServer
           Meteor.publish id, -> if @userId then collection.find() else []
         else
