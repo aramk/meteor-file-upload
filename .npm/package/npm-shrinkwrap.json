@@ -1,7 +1,0 @@
-{
-  "dependencies": {
-    "mime": {
-      "version": "http://npm.urbanetic.net:8080/mime/-/mime-1.3.4.tgz"
-    }
-  }
-}
