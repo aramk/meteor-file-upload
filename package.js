@@ -4,7 +4,11 @@ Package.describe({
   version: '0.4.0'
 });
 
-Package.on_use(function(api) {
+Npm.depends({
+  'mime': '1.3.4'
+})
+
+Package.onUse(function(api) {
   api.versionsFrom('METEOR@0.9.0');
   api.use([
     'coffeescript',
@@ -16,7 +20,8 @@ Package.on_use(function(api) {
     'cfs:standard-packages@0.5.7',
     'cfs:filesystem@0.1.2',
     'cfs:tempstore@0.1.5',
-    'cfs:s3@0.1.3'
+    'cfs:s3@0.1.3',
+    'urbanetic:bismuth-utility@0.1.0'
   ], ['client', 'server']);
   api.addFiles([
     'src/uploadField.html',
@@ -24,10 +29,10 @@ Package.on_use(function(api) {
     'src/uploadField.less'
   ], 'client');
   api.addFiles([
-    'src/common.coffee'
+    'src/common/FileUtils.coffee'
   ], ['client', 'server']);
   api.addFiles([
-    'src/server.coffee'
+    'src/server/FileUtils.coffee'
   ], 'server');
   api.imply('cfs:standard-packages@0.5.7');
   api.export([

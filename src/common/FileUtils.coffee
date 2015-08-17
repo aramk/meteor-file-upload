@@ -5,23 +5,32 @@ StoreConstructors =
 # Necessary to ensure our definition below uses the package-scope reference.
 global = @
 
-moduleDf = Q.defer()
+# A map of collection IDs to promises which are resolved once they are set up.
+collectionPromises = {}
 
 # File IDs to deferred promises containing their data.
 fileCache = {}
 
+FILE_COLLECTION_ID = 'files'
+
 FileUtils =
 
-  ready: -> moduleDf.promise
+  ready: (name) ->
+    name ?= FILE_COLLECTION_ID
+    Q(collectionPromises[name])
 
   createCollection: (id, args) ->
     df = Q.defer()
+    collectionPromises[id] = df.promise
+    # Wait for startup to complete to ensure collections can be defined.
+    Meteor.startup => df.resolve @_createCollection(id, args)
+    df.promise
+
+  _createCollection: (id, args) ->
+    df = Q.defer()
     adapterPromise = Q.when(@getAdapters())
-    adapterPromise.fail (err) ->
-      Logger.error('Could not set up CFS adapters', err)
-
+    adapterPromise.fail (err) -> Logger.error('Could not set up CFS adapters', err)
     adapterPromise.then Meteor.bindEnvironment (result) =>
-
       tempStoreArgs = result._tempstore
       if tempStoreArgs
         delete result._tempstore
@@ -35,6 +44,7 @@ FileUtils =
       args = _.extend({
         stores: stores
         globalName: Strings.toTitleCase(id)
+        publish: true
       }, args)
       globalName = args.globalName
       collection = new FS.Collection(id, args)
@@ -44,14 +54,15 @@ FileUtils =
         insert: Collections.allow
         update: Collections.allow
         remove: Collections.allow
-
-      if Meteor.isServer
-        Meteor.publish id, -> if @userId then collection.find() else null
-      else
-        Meteor.subscribe(id)
-
       bindMethods(globalName, collection)
       global[globalName] = collection
+
+      if args.publish
+        if Meteor.isServer
+          Meteor.publish id, -> if @userId then collection.find() else []
+        else
+          Meteor.subscribe(id)
+
       df.resolve(collection)
     df.promise
 
@@ -66,7 +77,7 @@ bindMethods = (collectionName, collection) ->
 
     whenUploaded: (fileId) ->
       df = Q.defer()
-      file = collection.findOne(fileId)
+      file = collection.findOne(_id: fileId)
       unless file
         return Q.reject('No file with ID ' + fileId + ' found.')
       # TODO(aramk) Remove timeout and use an event callback.
@@ -83,15 +94,51 @@ bindMethods = (collectionName, collection) ->
 
     downloadJson: (fileId) -> download('files/download/json', fileId, collectionName)
 
-    upload: (obj) ->
-      Logger.info('Uploading file', obj)
+    # Uploads the given file to the collection.
+    #  * `file` - Either an `FS.File`, `File`, or URL string.
+    #  * `options.useExisting` - Whether to attempt to use an existing copy of the given file
+    #                            instead of uploading a new copy. Defaults to true.
+    # Returns a promise containing uploaded or existing `FS.File` instance.
+    upload: (file, options) ->
       df = Q.defer()
-      collection.insert obj, Meteor.bindEnvironment (err, fileObj) ->
-        if err
-          df.reject(err)
-          return
-        collection.whenUploaded(fileObj._id).then(df.resolve, df.reject)
+      onFileId = (fileId) -> df.resolve collection.whenUploaded(fileId)
+      unless options?.useExisting == false
+        Logger.debug('Checking for existing file copy...')
+        fileObj = @getExistingCopy(file)
+      if fileObj
+        Logger.debug('Reusing existing file', fileObj._id)
+        onFileId(fileObj._id)
+      else
+        Logger.debug('Uploading file', file, options)
+        if Paths.isUrl(file)
+          Meteor.call 'files/upload/url', file, {collection: collectionName}, (err, fileId) ->
+            if err then df.reject(err) else onFileId(fileId)
+        else
+          collection.insert file, Meteor.bindEnvironment (err, fileObj) ->
+            if err then df.reject(err) else onFileId(fileObj._id)
       df.promise
+
+    getExistingCopy: (file) ->
+      stats = @getFileStats(file)
+      name = stats.name
+      size = stats.size
+      if name? && size?
+        selector = {'original.name': name, 'original.size': size}
+      else if url?
+        selector = {'original.url': url}
+      if selector then collection.findOne(selector)
+
+    getFileStats: (file) ->
+      if Paths.isUrl(file)
+        name = Paths.filename(file)
+        url = file
+      if file instanceof FS.File
+        name = file.name()
+        size = file.size()
+      else if Meteor.isClient && file instanceof File
+        name = file.name
+        size = file.size ? file.fileSize
+      {name: name, size: size, url: url}
 
   if Meteor.isClient
 
@@ -99,14 +146,20 @@ bindMethods = (collectionName, collection) ->
 
       toBlob: (fileId) ->
         # NOTE: Only works with string data. Use downloadInBrowser() to download any type of file.
-        file = collection.findOne(fileId)
+        file = collection.findOne(_id: fileId)
         collection.download(fileId).then (data) ->
           Blobs.fromString(data, type: file.type())
 
-      downloadInBrowser: (fileId) ->
+      downloadInBrowser: (fileId, args) ->
+        args = Setter.merge({
+          blob: false
+        }, args)
         file = collection.findOne(_id: fileId)
         unless file then return Logger.error('File not found: ' + fileId)
         Logger.info 'Downloading file', fileId, file
+        if args.blob
+          @toBlob(fileId).then (blob) -> Blobs.downloadInBrowser(blob, file.name())
+          return
         # Wait for the file to be synced to the client and the URL to be propagated.
         handle = null
         handler = ->
@@ -122,7 +175,7 @@ if Meteor.isServer
     FS.TempStore.Storage = createStore(args.adapter, '_tempstore', args.config)
 
 Meteor.startup ->
-  FileUtils.createCollection('files').then (Files) -> moduleDf.resolve(Files)
+  FileUtils.createCollection(FILE_COLLECTION_ID)
 
 ####################################################################################################
 # AUXILIARY
@@ -137,16 +190,17 @@ createStore = (adapterId, storeId, config) ->
 download = (method, fileId, collectionName) ->
   unless fileId?
     return Q.reject('No file ID given')
-  fileDf = fileCache[fileId]
+  fileDf = fileCache[method]?[fileId]
   unless fileDf
-    fileDf = fileCache[fileId] = Q.defer()
+    fileIdCache = fileCache[method] ?= {}
+    fileDf = fileIdCache[fileId] = Q.defer()
     _download(method, fileId, collectionName, 10)
   fileDf.promise.then(
     (data) -> Setter.clone(data)
   )
 
 _download = (method, fileId, collectionName, triesLeft) ->
-  fileDf = fileCache[fileId]
+  fileDf = fileCache[method][fileId]
   if triesLeft <= 0
     fileDf.reject('Could not download file ' + fileId + ' - no tries left.')
     return
