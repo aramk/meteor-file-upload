@@ -104,8 +104,18 @@ bindMethods = (collectionName, collection) ->
           Blobs.fromString(data, type: file.type())
 
       downloadInBrowser: (fileId) ->
-        file = collection.findOne(fileId)
-        Window.downloadFile(file.url())
+        file = collection.findOne(_id: fileId)
+        unless file then return Logger.error('File not found: ' + fileId)
+        Logger.info 'Downloading file', fileId, file
+        # Wait for the file to be synced to the client and the URL to be propagated.
+        handle = null
+        handler = ->
+          file = collection.findOne(_id: fileId)
+          if file?.url()
+            clearInterval(handle)
+            Window.downloadFile(file.url())
+        handle = setInterval handler, 1000
+        handler()
 
 if Meteor.isServer
   createTempStore = _.once (args) ->
