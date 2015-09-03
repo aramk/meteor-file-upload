@@ -130,7 +130,7 @@ bindMethods = (collectionName, collection) ->
 
     getFileStats: (file) ->
       if Paths.isUrl(file)
-        name = Paths.filename(file)
+        name = Paths.basename(file)
         url = file
       if file instanceof FS.File
         name = file.name()
