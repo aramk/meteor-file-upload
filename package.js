@@ -16,12 +16,11 @@ Package.onUse(function(api) {
     'templating',
     'less',
     'aramk:q@1.0.1_1',
+    'aramk:utility@0.8.0',
     'cfs:standard-packages@0.5.7',
     'cfs:filesystem@0.1.2',
     'cfs:tempstore@0.1.5',
-    'cfs:s3@0.1.3',
-    'urbanetic:bismuth-utility@0.1.0',
-    'urbanetic:utility@1.0.0'
+    'cfs:s3@0.1.3'
   ], ['client', 'server']);
   api.addFiles([
     'src/uploadField.html',
