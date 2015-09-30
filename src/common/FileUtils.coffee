@@ -84,10 +84,13 @@ bindMethods = (collectionName, collection) ->
       timerHandler = Meteor.bindEnvironment ->
         progress = file.uploadProgress()
         uploaded = file.isUploaded()
+        Logger.debug('Waiting for file upload to complete...', fileId, progress, uploaded)
         if uploaded
-          clearTimeout(handle)
+          Logger.debug('File upload is complete', fileId, progress)
+          Meteor.clearInterval(handle)
           df.resolve(file)
-      handle = setInterval timerHandler, 1000
+      handle = Meteor.setInterval timerHandler, 1000
+      timerHandler()
       df.promise
 
     download: (fileId) -> download('files/download/string', fileId, collectionName)
