@@ -9,15 +9,15 @@ TEMP_DIR = env.TEMP_DIR
 # Removes the temporary directory on startup.
 REMOVE_TMP_ON_LOAD = env.REMOVE_TMP_ON_LOAD
 if REMOVE_TMP_ON_LOAD == '1' || REMOVE_TMP_ON_LOAD == 'true'
-  console.log('Removing TEMP_DIR...')
+  Logger.info('Removing TEMP_DIR...')
   if TEMP_DIR?
-    console.log('TEMP_DIR=', TEMP_DIR)
+    Logger.info('TEMP_DIR=', TEMP_DIR)
     shell = Npm.require('shelljs')
     path = Npm.require('path')
     shell.rm('-rf', path.join(TEMP_DIR, '*'))
-    console.log('Removed TEMP_DIR')
+    Logger.info('Removed TEMP_DIR')
   else
-    console.log('No TEMP_DIR set')
+    Logger.info('No TEMP_DIR set')
 
 # Default to filesystem for storage.
 Adapters =
@@ -51,10 +51,10 @@ if s3BucketName
 # Necessary to reference the correct reference of Files.
 global = @
 
-getCollection = (name) ->
-  name ?= 'Files'
-  collection = Collections.get(name)
-  unless collection then throw new Error('Cannot find collection with name ' + name)
+getCollection = (arg) ->
+  arg ?= 'Files'
+  collection = Collections.get(arg)
+  unless collection then throw new Error('Cannot find collection: ' + arg)
   collection
 
 _.extend FileUtils,
@@ -62,16 +62,18 @@ _.extend FileUtils,
   whenUploaded: (fileId, collectionName) ->
     Promises.runSync -> getCollection(collectionName).whenUploaded(fileId)
 
-  getReadStream: (fileId, collectionName) ->
+  getReadStream: (fileId, collectionName, options) ->
     @whenUploaded(fileId, collectionName)
-    item = getCollection(collectionName).findOne(_id: fileId)
-    unless item
+    collection = getCollection(collectionName)
+    file = collection.findOne(_id: fileId)
+    unless file
       throw new Meteor.Error(404, 'File with ID ' + fileId + ' not found.')
-    item.createReadStream('files')
+    collectionId = Collections.getName(collection)
+    file.createReadStream(collectionId, options)
 
-  getBuffer: (fileId, collectionName) ->
+  getBuffer: (fileId, collectionName, options) ->
     @whenUploaded(fileId, collectionName)
-    reader = @getReadStream(fileId, collectionName)
+    reader = @getReadStream(fileId, collectionName, options)
     Buffers.fromStream(reader)
 
   writeToTempFile: (filename, data) ->
@@ -83,13 +85,20 @@ _.extend FileUtils,
 
 Meteor.methods
 
-  'files/download/string': (fileId, collectionName) ->
+  'files/download/string': (fileId, collectionName, options) ->
+    Logger.debug('Downloading file:', collectionName, fileId, options)
     return unless @userId
-    FileUtils.getBuffer(fileId, collectionName).toString()
+    @unblock()
+    data = FileUtils.getBuffer(fileId, collectionName, options).toString()
+    Logger.debug('Returning file string:', collectionName, fileId, data.length)
+    data
 
-  'files/download/json': (fileId, collectionName) ->
+  'files/download/json': (fileId, collectionName, options) ->
+    Logger.debug('Downloading file:', collectionName, fileId, options)
     return unless @userId
-    data = FileUtils.getBuffer(fileId, collectionName).toString()
+    @unblock()
+    data = FileUtils.getBuffer(fileId, collectionName, options).toString()
+    Logger.debug('Returning file JSON:', collectionName, fileId, data.length)
     if data == ''
       throw new Meteor.Error(400, 'Attempted to download empty JSON')
     else
