@@ -49,11 +49,12 @@ FileUtils =
       globalName = args.globalName
       collection = new FS.Collection(id, args)
       collection.name = id
+      allowUser = (userId, doc) -> userId?
       collection.allow
-        download: Collections.allow
-        insert: Collections.allow
-        update: Collections.allow
-        remove: Collections.allow
+        download: allowUser
+        insert: allowUser
+        update: allowUser
+        remove: allowUser
       bindMethods(globalName, collection)
       global[globalName] = collection
 
