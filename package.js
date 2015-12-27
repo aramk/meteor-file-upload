@@ -32,10 +32,14 @@ Package.onUse(function(api) {
     'src/common/FileUtils.coffee'
   ], ['client', 'server']);
   api.addFiles([
-    'src/server/FileUtils.coffee'
+    'src/server/FileUtils.coffee',
+    'src/server/FileLogger.coffee'
   ], 'server');
   api.imply('cfs:standard-packages@0.5.7');
   api.export([
     'FileUtils'
   ], ['client', 'server']);
+  api.export([
+    'FileLogger'
+  ], 'server');
 });
