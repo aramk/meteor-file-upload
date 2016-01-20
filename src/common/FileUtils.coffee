@@ -38,8 +38,9 @@ FileUtils =
           createTempStore(tempStoreArgs)
 
       stores = []
-      _.each result, (args, adapterId) ->
-        stores.push createStore(adapterId, id + '-' + adapterId, args.config)
+      _.each result, (adapterArgs, adapterId) =>
+        Setter.merge(adapterArgs, args)
+        stores.push createStore(adapterId, @getStoreId(id, adapterId), adapterArgs.config)
       
       args = _.extend({
         stores: stores
@@ -66,6 +67,8 @@ FileUtils =
 
       df.resolve(collection)
     df.promise
+
+  getStoreId: (collectionId, adapterId) -> collectionId + '-' + adapterId
 
 if Meteor.isClient
 
