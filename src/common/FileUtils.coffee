@@ -6,7 +6,7 @@ StoreConstructors =
 global = @
 
 # A map of collection IDs to promises which are resolved once they are set up.
-collectionPromises = {}
+collectionDfs = {}
 
 # File IDs to deferred promises containing their data.
 fileCache = {}
@@ -15,13 +15,12 @@ FILE_COLLECTION_ID = 'files'
 
 FileUtils =
 
-  ready: (name) ->
-    name ?= FILE_COLLECTION_ID
-    Q(collectionPromises[name])
+  ready: (id) ->
+    id ?= FILE_COLLECTION_ID
+    @_initDf(id).promise
 
   createCollection: (id, args) ->
-    df = Q.defer()
-    collectionPromises[id] = df.promise
+    df = @_initDf(id)
     # Wait for startup to complete to ensure collections can be defined.
     Meteor.startup => df.resolve @_createCollection(id, args)
     df.promise
@@ -69,6 +68,13 @@ FileUtils =
     df.promise
 
   getStoreId: (collectionId, adapterId) -> collectionId + '-' + adapterId
+
+  _initDf: (id) ->
+    df = collectionDfs[id]
+    unless collectionDfs[id]?
+      df = Q.defer()
+      collectionDfs[id] = df
+    return df
 
 if Meteor.isClient
 
