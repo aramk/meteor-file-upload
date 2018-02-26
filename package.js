@@ -1,7 +1,7 @@
 Package.describe({
   name: 'aramk:file-upload',
   summary: 'Simple file uploads.',
-  version: '0.4.2'
+  version: '1.0.0'
 });
 
 Npm.depends({
@@ -9,7 +9,7 @@ Npm.depends({
 })
 
 Package.onUse(function(api) {
-  api.versionsFrom('METEOR@1.2.0.1');
+  api.versionsFrom('METEOR@1.6.1');
   api.use([
     'coffeescript',
     'underscore',
@@ -20,8 +20,8 @@ Package.onUse(function(api) {
     'cfs:filesystem@0.1.2',
     'cfs:tempstore@0.1.5',
     'cfs:s3@0.1.3',
-    'urbanetic:bismuth-utility@0.3.0',
-    'urbanetic:utility@1.2.0'
+    'urbanetic:bismuth-utility@1.0.0',
+    'urbanetic:utility@2.0.0'
   ], ['client', 'server']);
   api.addFiles([
     'src/uploadField.html',
