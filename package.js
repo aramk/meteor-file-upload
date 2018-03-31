@@ -11,9 +11,9 @@ Npm.depends({
 Package.onUse(function(api) {
   api.versionsFrom('METEOR@1.6.1');
   api.use([
-    'coffeescript',
+    'coffeescript@1.2.3',
     'underscore',
-    'templating',
+    'templating@1.3.2',
     'less',
     'aramk:q@1.0.1_1',
     'cfs:standard-packages@0.5.7',
