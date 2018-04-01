@@ -1,7 +1,7 @@
 Package.describe({
   name: 'aramk:file-upload',
   summary: 'Simple file uploads.',
-  version: '1.0.0_1'
+  version: '1.0.0_2'
 });
 
 Npm.depends({
@@ -21,7 +21,7 @@ Package.onUse(function(api) {
     'cfs:tempstore@0.1.5',
     'cfs:s3@0.1.3',
     'urbanetic:bismuth-utility@1.0.0',
-    'urbanetic:utility@2.0.0'
+    'urbanetic:utility@2.0.1'
   ], ['client', 'server']);
   api.addFiles([
     'src/uploadField.html',
