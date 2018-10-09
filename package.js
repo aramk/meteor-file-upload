@@ -20,7 +20,7 @@ Package.onUse(function(api) {
     'cfs:filesystem@0.1.2',
     'cfs:tempstore@0.1.5',
     'cfs:s3@0.1.3',
-    'urbanetic:bismuth-utility@1.0.1',
+    'urbanetic:bismuth-utility@2.0.0',
     'urbanetic:utility@2.0.1'
   ], ['client', 'server']);
   api.addFiles([
