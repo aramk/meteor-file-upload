@@ -48,6 +48,10 @@ if s3BucketName
       bucket: s3BucketName
   Adapters.S3.config.region = s3Region if s3Region
 
+if env.CFS_FILESYSTEM == '0'
+  delete Adapters.FILESYSTEM
+  Logger.info('Disabling filesystem for CFS')
+
 # Necessary to reference the correct reference of Files.
 global = @
 

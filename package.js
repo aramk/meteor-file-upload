@@ -1,7 +1,7 @@
 Package.describe({
   name: 'aramk:file-upload',
   summary: 'Simple file uploads.',
-  version: '1.0.1'
+  version: '1.1.0'
 });
 
 Npm.depends({
