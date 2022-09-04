@@ -1,7 +1,7 @@
 Package.describe({
   name: 'aramk:file-upload',
   summary: 'Simple file uploads.',
-  version: '1.1.0'
+  version: '2.0.0'
 });
 
 Npm.depends({
@@ -14,14 +14,14 @@ Package.onUse(function(api) {
     'coffeescript@2.2.1_1',
     'underscore',
     'templating@1.3.2',
-    'less',
+    'less@4.0.0',
     'aramk:q@1.0.1_1',
-    'cfs:standard-packages@0.5.7',
-    'cfs:filesystem@0.1.2',
-    'cfs:tempstore@0.1.5',
-    'cfs:s3@0.1.3',
-    'urbanetic:bismuth-utility@2.0.0',
-    'urbanetic:utility@2.0.1'
+    'cfs:standard-packages@3.0.0',
+    'cfs:filesystem@3.0.0',
+    'cfs:tempstore@3.0.0',
+    'cfs:s3@3.0.0',
+    'urbanetic:bismuth-utility@3.0.0',
+    'urbanetic:utility@3.0.0'
   ], ['client', 'server']);
   api.addFiles([
     'src/uploadField.html',
@@ -35,7 +35,7 @@ Package.onUse(function(api) {
     'src/server/FileUtils.coffee',
     'src/server/FileLogger.coffee'
   ], 'server');
-  api.imply('cfs:standard-packages@0.5.7');
+  api.imply('cfs:standard-packages@3.0.0');
   api.export([
     'FileUtils'
   ], ['client', 'server']);
